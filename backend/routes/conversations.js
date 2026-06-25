@@ -26,7 +26,10 @@ router.post('/', async (req, res) => {
     .select()
     .single();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('Supabase error:', error); // ← 追加
+    return res.status(500).json({ error: error.message, details: error });
+  }
   res.json(data);
 });
 
