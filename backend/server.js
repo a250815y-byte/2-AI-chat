@@ -20,3 +20,11 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+const conversationsRouter = require('./routes/conversations');
+const messagesRouter = require('./routes/messages');
+const aiRouter = require('./routes/ai'); // ← 追加
+
+app.use('/conversations', conversationsRouter);
+app.use('/messages', messagesRouter);
+app.use('/ai', aiRouter); // ← 追加
