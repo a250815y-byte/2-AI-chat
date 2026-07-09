@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
     }));
 
     // 4. Geminiに送信
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const chat = model.startChat({ history: formattedHistory });
     const result = await chat.sendMessage(userMessage);
     const aiReply = result.response.text();
