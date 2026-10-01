@@ -5,6 +5,7 @@ require('dotenv').config();
 const conversationsRouter = require('./routes/conversations');
 const messagesRouter = require('./routes/messages');
 const aiRouter = require('./routes/ai');
+const authRouter = require('./routes/auth');
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ app.get('/', (req, res) => {
 app.use('/conversations', conversationsRouter);
 app.use('/messages', messagesRouter);
 app.use('/ai', aiRouter);
+app.use('/auth', authRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
