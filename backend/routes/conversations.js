@@ -33,4 +33,17 @@ router.post('/', async (req, res) => {
   res.json(data);
 });
 
+// 会話を削除
+router.delete('/:conversationId', async (req, res) => {
+  const { conversationId } = req.params;
+
+  const { error } = await supabase
+    .from('conversations')
+    .delete()
+    .eq('id', conversationId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: '削除完了' });
+});
+
 module.exports = router;
