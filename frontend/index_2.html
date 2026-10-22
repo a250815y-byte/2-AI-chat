@@ -260,6 +260,42 @@
         }
         .send-btn:disabled { background: rgba(99, 102, 241, 0.3); color: rgba(255,255,255,0.3); }
 
+        .mic-btn {
+            background: #20222e;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.75);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .mic-btn.listening {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+            animation: micPulse 1.4s infinite;
+        }
+        .mic-btn:disabled { opacity: 0.4; }
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .voice-status {
+            font-size: 12px;
+            color: #ef4444;
+            text-align: center;
+            padding: 4px 10px 0;
+            background-color: #161722;
+            display: none;
+        }
+        .voice-status.show { display: block; }
+
         /* --- 4. 履歴ドロワー --- */
         .history-drawer {
             position: absolute;
@@ -310,6 +346,32 @@
             background: rgba(255,255,255,0.08);
             border: 1px solid rgba(99, 102, 241, 0.2);
         }
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .history-item-title {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .history-delete-btn {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.45);
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .history-delete-btn:active { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .history-delete-btn:disabled { opacity: 0.4; }
         .drawer-overlay {
             position: absolute;
             top: 0;
@@ -323,6 +385,113 @@
             transition: opacity 0.3s ease;
         }
         .drawer-overlay.show { display: block; opacity: 1; }
+
+        /* --- 0. ログイン関連画面 --- */
+        #login-screen {
+            align-items: center;
+            justify-content: center;
+            padding: 40px 28px;
+            text-align: center;
+        }
+        .login-logo {
+            width: 92px;
+            height: 92px;
+            border-radius: 28px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+        .login-app-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .login-app-sub {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 48px;
+            line-height: 1.6;
+        }
+        #login-screen .btn-primary {
+            max-width: 320px;
+        }
+
+        #login-form-screen {
+            padding: 20px;
+        }
+        .login-form-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 28px 0 32px;
+        }
+        .login-form-body {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .form-field {
+            margin-bottom: 18px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            background-color: #20222e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 16px;
+            border-radius: 14px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: #6366f1;
+        }
+        .form-error {
+            font-size: 13px;
+            color: #ef4444;
+            margin: -6px 0 16px;
+            display: none;
+        }
+        .form-error.show {
+            display: block;
+        }
+        .login-submit-area {
+            padding: 16px 0;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+        .login-btn-group {
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-secondary:active { background: rgba(255, 255, 255, 0.06); }
+        .form-success {
+            font-size: 13px;
+            color: #22c55e;
+            margin: -6px 0 16px;
+            display: none;
+        }
+        .form-success.show { display: block; }
     </style>
 </head>
 <body>
@@ -338,7 +507,80 @@
             <div class="history-list" id="history-list-area"></div>
         </div>
 
-        <div class="screen active" id="selection-screen">
+        <div class="screen active" id="login-screen">
+            <div class="login-logo">💬</div>
+            <div class="login-app-title">AI Companion</div>
+            <div class="login-app-sub">いつでもそばにいる、あなたの話し相手。<br>ログインしてはじめよう。</div>
+            <div class="login-btn-group">
+                <button class="btn-primary" onclick="goToLoginForm()">ログイン</button>
+                <button class="btn-secondary" onclick="goToRegisterForm()">IDをお持ちでない方はこちら（新規登録）</button>
+            </div>
+        </div>
+
+        <div class="screen" id="login-form-screen">
+            <div class="header-bar">
+                <button class="icon-btn" onclick="goBackToLogin()">←</button>
+                <span style="font-weight: bold;">ログイン</span>
+                <span style="width: 44px;"></span>
+            </div>
+            <div class="login-form-body">
+                <form id="login-form" onsubmit="attemptLogin(event)" style="padding: 0 20px;">
+                    <div class="login-form-title">アカウント情報を入力</div>
+
+                    <div class="form-success" id="login-success"></div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="login-email">メールアドレス</label>
+                        <input type="email" id="login-email" class="form-input" placeholder="you@example.com" autocomplete="username">
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="login-password">パスワード</label>
+                        <input type="password" id="login-password" class="form-input" placeholder="パスワード" autocomplete="current-password">
+                    </div>
+
+                    <div class="form-error" id="login-error"></div>
+                </form>
+            </div>
+            <div class="login-submit-area" style="padding-left:20px; padding-right:20px;">
+                <button type="submit" form="login-form" class="btn-primary" id="login-submit-btn">ログイン</button>
+            </div>
+        </div>
+
+        <div class="screen" id="register-form-screen">
+            <div class="header-bar">
+                <button class="icon-btn" onclick="goBackToLogin()">←</button>
+                <span style="font-weight: bold;">新規登録</span>
+                <span style="width: 44px;"></span>
+            </div>
+            <div class="login-form-body">
+                <form id="register-form" onsubmit="attemptRegister(event)" style="padding: 0 20px;">
+                    <div class="login-form-title">アカウントを作成</div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="register-username">ユーザー名</label>
+                        <input type="text" id="register-username" class="form-input" placeholder="表示名" autocomplete="nickname">
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="register-email">メールアドレス</label>
+                        <input type="email" id="register-email" class="form-input" placeholder="you@example.com" autocomplete="email">
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="register-password">パスワード</label>
+                        <input type="password" id="register-password" class="form-input" placeholder="パスワード" autocomplete="new-password">
+                    </div>
+
+                    <div class="form-error" id="register-error"></div>
+                </form>
+            </div>
+            <div class="login-submit-area" style="padding-left:20px; padding-right:20px;">
+                <button type="submit" form="register-form" class="btn-primary" id="register-submit-btn">登録する</button>
+            </div>
+        </div>
+
+        <div class="screen" id="selection-screen">
             <div class="screen-title">キャラクター</div>
             <div class="char-grid">
                 <div class="char-card" onclick="selectCharacter('つむぎ', 'images tsumugi.jpg')">
@@ -380,8 +622,10 @@
                 <button class="icon-btn" style="font-size: 18px;">📞</button>
             </div>
             <div class="chat-main" id="chat-messages"></div>
+            <div class="voice-status" id="voice-status">🎤 聞き取り中... もう一度タップで停止</div>
             <div class="chat-input-area">
                 <input type="text" class="chat-input" id="chat-input-field" placeholder="メッセージを入力..." onkeypress="handleKeyPress(event)">
+                <button class="mic-btn" onclick="toggleVoiceInput()" id="mic-btn" aria-label="音声入力">🎤</button>
                 <button class="send-btn" onclick="sendMessage()" id="send-msg-btn">➔</button>
             </div>
         </div>
@@ -390,7 +634,16 @@
 
     <script>
         const API_BASE_URL = "http://localhost:3000";
-        const CURRENT_USER_ID = "79596575-e7b0-41e8-860a-f8d5bf0162c8";
+
+        /* ログイン成功時にサーバーから返る userId で上書きされる（未ログイン時は null） */
+        let CURRENT_USER_ID = null;
+        let ACCESS_TOKEN = null;
+
+        /* ログインを使うかどうか。
+           false : ログイン画面を飛ばして、キャラクター選択画面から開始（固定ユーザーIDを使用）
+           true  : ログイン／新規登録画面から開始（ログイン成功時の userId を使用） */
+        const USE_LOGIN = true;
+        const GUEST_USER_ID = "79596575-e7b0-41e8-860a-f8d5bf0162c8";
 
         let currentCharacter = { name: '', image: '' };
         let activeConversations = { "つむぎ": null, "蒼空": null };
@@ -401,8 +654,122 @@
         };
 
         function switchScreen(screenId) {
+            stopVoiceInput();
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+        }
+
+        /* --- ログイン・新規登録 --- */
+        function goToLoginForm() {
+            document.getElementById('login-error').classList.remove('show');
+            document.getElementById('login-success').classList.remove('show');
+            switchScreen('login-form-screen');
+        }
+
+        function goToRegisterForm() {
+            document.getElementById('register-error').classList.remove('show');
+            switchScreen('register-form-screen');
+        }
+
+        function goBackToLogin() {
+            switchScreen('login-screen');
+        }
+
+        async function attemptLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            const errorEl = document.getElementById('login-error');
+            const submitBtn = document.getElementById('login-submit-btn');
+            errorEl.classList.remove('show');
+
+            if (!email || !password) {
+                errorEl.innerText = "メールアドレスとパスワードを入力してください。";
+                errorEl.classList.add('show');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "ログイン中...";
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.innerText = data.message || "ログインに失敗しました。メールアドレスとパスワードをご確認ください。";
+                    errorEl.classList.add('show');
+                    return;
+                }
+
+                // サーバーから返る userId を今後の会話・メッセージAPI呼び出しに使う
+                CURRENT_USER_ID = data.userId;
+                ACCESS_TOKEN = data.accessToken;
+
+                document.getElementById('login-form').reset();
+                switchScreen('selection-screen');
+            } catch (error) {
+                console.error("ログイン通信に失敗しました:", error);
+                errorEl.innerText = "サーバーに接続できませんでした。時間をおいて再度お試しください。";
+                errorEl.classList.add('show');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "ログイン";
+            }
+        }
+
+        async function attemptRegister(event) {
+            event.preventDefault();
+            const username = document.getElementById('register-username').value.trim();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value.trim();
+            const errorEl = document.getElementById('register-error');
+            const submitBtn = document.getElementById('register-submit-btn');
+            errorEl.classList.remove('show');
+
+            if (!username || !email || !password) {
+                errorEl.innerText = "ユーザー名・メールアドレス・パスワードをすべて入力してください。";
+                errorEl.classList.add('show');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "登録中...";
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, username })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.innerText = data.message || "登録に失敗しました。入力内容をご確認ください。";
+                    errorEl.classList.add('show');
+                    return;
+                }
+
+                // 新規登録APIはアクセストークンを返さないため、そのままログイン画面に誘導する
+                document.getElementById('register-form').reset();
+                document.getElementById('login-email').value = email;
+                const successEl = document.getElementById('login-success');
+                successEl.innerText = data.message || "登録が完了しました。ログインしてください。";
+                successEl.classList.add('show');
+                document.getElementById('login-error').classList.remove('show');
+                switchScreen('login-form-screen');
+            } catch (error) {
+                console.error("新規登録の通信に失敗しました:", error);
+                errorEl.innerText = "サーバーに接続できませんでした。時間をおいて再度お試しください。";
+                errorEl.classList.add('show');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "登録する";
+            }
         }
 
         function selectCharacter(name, imagePath) {
@@ -484,6 +851,7 @@
             if (!conversationId) return;
 
             const sendBtn = document.getElementById('send-msg-btn');
+            stopVoiceInput();
 
             renderMessageElement(text, 'user');
             input.value = '';
@@ -501,7 +869,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         conversationId: conversationId,
-                        userMessage: text
+                        userMessage: text,
+                        characterName: currentCharacter.name === 'つむぎ' ? 'tsumugi' : 'aozora'
                     })
                 });
 
@@ -543,7 +912,21 @@
                         conversations.forEach(conv => {
                             const item = document.createElement('div');
                             item.classList.add('history-item');
-                            item.innerText = `${conv.title} との会話`;
+                            const titleSpan = document.createElement('span');
+                            titleSpan.classList.add('history-item-title');
+                            titleSpan.innerText = `${conv.title} との会話`;
+                            item.appendChild(titleSpan);
+
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.classList.add('history-delete-btn');
+                            deleteBtn.innerText = '🗑';
+                            deleteBtn.setAttribute('aria-label', '会話を削除');
+                            deleteBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                deleteConversation(conv, item, deleteBtn);
+                            };
+                            item.appendChild(deleteBtn);
+
                             item.onclick = () => {
                                 toggleHistory(false);
                                 const imgPath = conv.title === 'つむぎ' ? 'images tsumugi.jpg' : 'images aozora.jpg';
@@ -564,6 +947,136 @@
                 drawer.classList.remove('open');
                 overlay.classList.remove('show');
             }
+        }
+
+        async function deleteConversation(conv, itemEl, deleteBtn) {
+            if (!confirm(`${conv.title} との会話を削除しますか？\nこの操作は取り消せません。`)) return;
+
+            deleteBtn.disabled = true;
+            try {
+                const response = await fetch(`${API_BASE_URL}/conversations/${conv.id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.message || "削除に失敗しました。");
+                    deleteBtn.disabled = false;
+                    return;
+                }
+
+                // 削除した会話が現在使用中なら、次回は新しい会話を作るようにリセット
+                const wasActive = activeConversations[conv.title] === conv.id;
+                if (wasActive) {
+                    activeConversations[conv.title] = null;
+                }
+
+                itemEl.remove();
+
+                const listArea = document.getElementById('history-list-area');
+                if (!listArea.querySelector('.history-item')) {
+                    listArea.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:14px;">まだ履歴はありません。</p>';
+                }
+
+                // 表示中のチャットが削除された会話だった場合はホーム画面に戻す
+                if (wasActive && document.getElementById('chat-screen').classList.contains('active')) {
+                    toggleHistory(false);
+                    document.getElementById('chat-messages').innerHTML = '';
+                    switchScreen('home-screen');
+                }
+            } catch (error) {
+                console.error("会話の削除に失敗しました:", error);
+                alert("サーバーに接続できませんでした。時間をおいて再度お試しください。");
+                deleteBtn.disabled = false;
+            }
+        }
+
+        /* --- 音声入力（Web Speech API：リアルタイムで文字起こし） --- */
+        const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+        let voiceBaseText = '';
+
+        function setVoiceUI(listening, message) {
+            const micBtn = document.getElementById('mic-btn');
+            const status = document.getElementById('voice-status');
+            if (!micBtn || !status) return;
+            micBtn.classList.toggle('listening', listening);
+            status.innerText = message || '🎤 聞き取り中... もう一度タップで停止';
+            status.classList.toggle('show', listening || !!message);
+        }
+
+        function toggleVoiceInput() {
+            if (!SpeechRecognitionClass) {
+                alert("このブラウザは音声入力に対応していません。Chrome または Safari をご利用ください。");
+                return;
+            }
+            if (isListening) { stopVoiceInput(); } else { startVoiceInput(); }
+        }
+
+        function startVoiceInput() {
+            const input = document.getElementById('chat-input-field');
+            voiceBaseText = input.value;
+
+            recognition = new SpeechRecognitionClass();
+            recognition.lang = 'ja-JP';
+            recognition.interimResults = true;   // 認識途中の文字もリアルタイム表示
+            recognition.continuous = true;       // 話し終わっても止まらず続ける
+
+            recognition.onstart = () => {
+                isListening = true;
+                setVoiceUI(true);
+            };
+
+            recognition.onresult = (event) => {
+                let finalText = '';
+                let interimText = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) finalText += transcript;
+                    else interimText += transcript;
+                }
+                input.value = voiceBaseText + finalText + interimText;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("音声認識エラー:", event.error);
+                let msg = '';
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    msg = "マイクの使用が許可されていません。ブラウザの設定をご確認ください。";
+                } else if (event.error === 'no-speech') {
+                    msg = "音声が聞き取れませんでした。";
+                } else if (event.error === 'network') {
+                    msg = "音声認識のネットワークエラーです。";
+                } else if (event.error === 'audio-capture') {
+                    msg = "マイクが見つかりません。";
+                }
+                isListening = false;
+                setVoiceUI(false, msg);
+                if (msg) setTimeout(() => setVoiceUI(false), 3000);
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                const status = document.getElementById('voice-status');
+                if (status && status.innerText.indexOf('聞き取り中') !== -1) setVoiceUI(false);
+                document.getElementById('mic-btn').classList.remove('listening');
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function stopVoiceInput() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+            isListening = false;
+            const micBtn = document.getElementById('mic-btn');
+            if (micBtn) setVoiceUI(false);
         }
 
         function handleKeyPress(event) {
@@ -620,6 +1133,12 @@
         function scrollChatToBottom() {
             const chatMain = document.getElementById('chat-messages');
             chatMain.scrollTop = chatMain.scrollHeight;
+        }
+
+        // ログインなしモード：固定ユーザーIDでキャラクター選択画面から開始
+        if (!USE_LOGIN) {
+            CURRENT_USER_ID = GUEST_USER_ID;
+            switchScreen('selection-screen');
         }
 
         function goBackToSelection() { switchScreen('selection-screen'); }
