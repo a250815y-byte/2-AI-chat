@@ -664,7 +664,11 @@
     </div>
 
     <script>
-        const API_BASE_URL = "http://10.30.57.133:3000";
+        // フロントとバックエンドを同じマシンで動かす場合は localhost を使用し、
+        // 別ホストに配置した場合はフロントと同じホスト名の 3000 番ポートを使用する。
+        const API_BASE_URL = window.location.protocol === 'file:'
+            ? 'http://localhost:3000'
+            : `${window.location.protocol}//${window.location.hostname}:3000`;
 
         /* ログイン成功時にサーバーから返る userId で上書きされる（未ログイン時は null） */
         let CURRENT_USER_ID = null;
@@ -678,6 +682,17 @@
 
         let currentCharacter = { name: '', image: '' };
         let activeConversations = { "つむぎ": null, "蒼空": null };
+
+        const characters = {
+            tsumugi: { name: 'つむぎ', image: 'images tsumugi.jpg' },
+            aozora: { name: '蒼空', image: 'images aozora.jpg' }
+        };
+
+        function characterIdFromName(name) {
+            if (name === 'つむぎ' || name === 'tsumugi') return 'tsumugi';
+            if (name === '蒼空' || name === 'aozora' || name === 'そら') return 'aozora';
+            return 'tsumugi';
+        }
 
         const characterDescriptions = {
             "つむぎ": "誰とでもすぐ打ち解ける、人懐っこくて笑顔が絶えない女の子。\n\n困っている人を見ると放っておけず、見返りなんて考えず自然と手を差し伸べる優しさを持っている。\n明るく場を盛り上げるムードメーカーだが、ただのお調子者ではない。\n\n現実をしっかり見据え、自分が決めたことは最後までやり抜く芯の強さと覚悟を秘めている。\n普段は津軽弁で気さくに話し、初対面でも距離を縮めるのが得意。\n\nその温かな笑顔とまっすぐな人柄は、多くの人から信頼されている。",
@@ -732,7 +747,7 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    errorEl.innerText = data.message || "ログインに失敗しました。メールアドレスとパスワードをご確認ください。";
+                    errorEl.innerText = data.error || data.message || "ログインに失敗しました。メールアドレスとパスワードをご確認ください。";
                     errorEl.classList.add('show');
                     return;
                 }
@@ -780,7 +795,7 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    errorEl.innerText = data.message || "登録に失敗しました。入力内容をご確認ください。";
+                    errorEl.innerText = data.error || data.message || "登録に失敗しました。入力内容をご確認ください。";
                     errorEl.classList.add('show');
                     return;
                 }
@@ -829,7 +844,7 @@
                     const response = await fetch(`${API_BASE_URL}/conversations`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: CURRENT_USER_ID, title: currentCharacter.name, characterName: currentCharacter.name === 'つむぎ' ? 'tsumugi' : 'aozora' })
+                            body: JSON.stringify({ userId: CURRENT_USER_ID, title: currentCharacter.name, characterName: characterIdFromName(currentCharacter.name) })
                     });
                     const data = await response.json();
 
@@ -957,10 +972,9 @@
 
                             item.onclick = () => {
                                 toggleHistory(false);
-                                const charName = conv.character_name || 'つむぎ';
-                                const imgPath = charName === 'つむぎ' ? 'images tsumugi.jpg' : 'images aozora.jpg';
-                                selectCharacter(charName, imgPath);
-                                activeConversations[charName] = conv.id;
+                                const character = characters[characterIdFromName(conv.character_name || conv.title)];
+                                selectCharacter(character.name, character.image);
+                                activeConversations[character.name] = conv.id;
                                 startChat();
                             };
                             listArea.appendChild(item);
@@ -995,7 +1009,7 @@
                 }
 
                 // 削除した会話が現在使用中なら、次回は新しい会話を作るようにリセット
-                const charName = conv.character_name || conv.title;
+                const charName = characters[characterIdFromName(conv.character_name || conv.title)].name;
                 const wasActive = activeConversations[charName] === conv.id;
                 if (wasActive) {
                     activeConversations[charName] = null;
@@ -1173,31 +1187,18 @@
 
         /* --- ログアウト --- */
 
-        /* ★ログアウトAPIを書き込む場所★
-           バックエンド側でログアウト（トークン無効化など）のAPIが用意できたら、
-           この関数の中に呼び出し処理を書く。
-           ・成功／失敗にかかわらず、画面側のログアウト（下の logout() の続き）は実行される。
-           ・ここでエラーを投げても大丈夫（logout() 側で catch している）。
-
-           書き方の例（URL・メソッド・ヘッダーはバックエンドの仕様に合わせて変更）：
-           const res = await fetch(`${API_BASE_URL}/auth/logout`, {
-               method: 'POST',
-               headers: {
-                   'Content-Type': 'application/json',
-                   'Authorization': `Bearer ${ACCESS_TOKEN}`
-               },
-               body: JSON.stringify({ userId: CURRENT_USER_ID })
-           });
-           if (!res.ok) throw new Error('ログアウトAPIが失敗しました');
-        */
         async function callLogoutApi() {
-            // TODO: ログアウトAPIの呼び出しをここに書く（現在は未実装・何もしない）
+            const response = await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'ログアウトAPIが失敗しました');
+            }
         }
 
         async function logout() {
             if (!confirm("ログアウトしますか？")) return;
 
-            // サーバー側のログアウト処理（API未実装の間は何もしない）
+            // バックエンドの /auth/logout を呼び出す
             try {
                 await callLogoutApi();
             } catch (error) {
