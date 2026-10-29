@@ -68,9 +68,12 @@ const characterPrompts = {
 async function generateTitle(userMessage) {
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        const prompt = `以下のメッセージの内容を表す短いタイトルを日本語で10文字以内で生成してください。タイトルのみ返してください。\n\nメッセージ: ${userMessage}`;
+        const prompt = `次のメッセージを10文字以内の日本語タイトルにしてください。タイトルの文字だけを返してください。説明や記号は不要です。\n\n${userMessage}`;
         const result = await model.generateContent(prompt);
-        const title = result.response.text().trim();
+        const fullText = result.response.text().trim();
+        // 思考過程を除いて最後の行だけ取り出す
+        const lines = fullText.split('\n').filter(l => l.trim() !== '');
+        const title = lines[lines.length - 1].trim();
         console.log('生成されたタイトル:', title);
         return title;
     } catch (e) {
