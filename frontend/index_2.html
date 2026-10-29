@@ -492,6 +492,31 @@
             display: none;
         }
         .form-success.show { display: block; }
+
+        /* --- ログアウト --- */
+        .selection-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logout-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .logout-btn:active { background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: #ef4444; }
+        .drawer-footer {
+            padding: 14px 20px;
+            padding-bottom: max(14px, env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+        }
+        .drawer-footer .logout-btn { width: 100%; padding: 12px; border-radius: 14px; }
     </style>
 </head>
 <body>
@@ -505,6 +530,9 @@
                 <button class="icon-btn" onclick="toggleHistory(false)">✕</button>
             </div>
             <div class="history-list" id="history-list-area"></div>
+            <div class="drawer-footer">
+                <button class="logout-btn" onclick="logout()">ログアウト</button>
+            </div>
         </div>
 
         <div class="screen active" id="login-screen">
@@ -581,7 +609,10 @@
         </div>
 
         <div class="screen" id="selection-screen">
-            <div class="screen-title">キャラクター</div>
+            <div class="selection-top-row">
+                <div class="screen-title">キャラクター</div>
+                <button class="logout-btn" onclick="logout()">ログアウト</button>
+            </div>
             <div class="char-grid">
                 <div class="char-card" onclick="selectCharacter('つむぎ', 'images tsumugi.jpg')">
                     <img src="images tsumugi.jpg" alt="つむぎ">
@@ -633,7 +664,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = "http://localhost:3000";
+        const API_BASE_URL = "http://10.30.57.133:3000";
 
         /* ログイン成功時にサーバーから返る userId で上書きされる（未ログイン時は null） */
         let CURRENT_USER_ID = null;
@@ -798,8 +829,7 @@
                     const response = await fetch(`${API_BASE_URL}/conversations`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        // ✅ 修正①: characterName → title に変更
-                        body: JSON.stringify({ userId: CURRENT_USER_ID, title: currentCharacter.name })
+                            body: JSON.stringify({ userId: CURRENT_USER_ID, title: currentCharacter.name, characterName: currentCharacter.name === 'つむぎ' ? 'tsumugi' : 'aozora' })
                     });
                     const data = await response.json();
 
@@ -862,8 +892,6 @@
             const loadingBubble = addLoadingBubble();
 
             try {
-                // ✅ 修正②: POST /messages の2重送信を削除。
-                //    /ai エンドポイントが内部でDBに保存するので、ここでは呼ばない。
                 const aiResponse = await fetch(`${API_BASE_URL}/ai`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -929,9 +957,10 @@
 
                             item.onclick = () => {
                                 toggleHistory(false);
-                                const imgPath = conv.title === 'つむぎ' ? 'images tsumugi.jpg' : 'images aozora.jpg';
-                                selectCharacter(conv.title, imgPath);
-                                activeConversations[conv.title] = conv.id;
+                                const charName = conv.character_name || 'つむぎ';
+                                const imgPath = charName === 'つむぎ' ? 'images tsumugi.jpg' : 'images aozora.jpg';
+                                selectCharacter(charName, imgPath);
+                                activeConversations[charName] = conv.id;
                                 startChat();
                             };
                             listArea.appendChild(item);
@@ -966,9 +995,10 @@
                 }
 
                 // 削除した会話が現在使用中なら、次回は新しい会話を作るようにリセット
-                const wasActive = activeConversations[conv.title] === conv.id;
+                const charName = conv.character_name || conv.title;
+                const wasActive = activeConversations[charName] === conv.id;
                 if (wasActive) {
-                    activeConversations[conv.title] = null;
+                    activeConversations[charName] = null;
                 }
 
                 itemEl.remove();
@@ -1139,6 +1169,63 @@
         if (!USE_LOGIN) {
             CURRENT_USER_ID = GUEST_USER_ID;
             switchScreen('selection-screen');
+        }
+
+        /* --- ログアウト --- */
+
+        /* ★ログアウトAPIを書き込む場所★
+           バックエンド側でログアウト（トークン無効化など）のAPIが用意できたら、
+           この関数の中に呼び出し処理を書く。
+           ・成功／失敗にかかわらず、画面側のログアウト（下の logout() の続き）は実行される。
+           ・ここでエラーを投げても大丈夫（logout() 側で catch している）。
+
+           書き方の例（URL・メソッド・ヘッダーはバックエンドの仕様に合わせて変更）：
+           const res = await fetch(`${API_BASE_URL}/auth/logout`, {
+               method: 'POST',
+               headers: {
+                   'Content-Type': 'application/json',
+                   'Authorization': `Bearer ${ACCESS_TOKEN}`
+               },
+               body: JSON.stringify({ userId: CURRENT_USER_ID })
+           });
+           if (!res.ok) throw new Error('ログアウトAPIが失敗しました');
+        */
+        async function callLogoutApi() {
+            // TODO: ログアウトAPIの呼び出しをここに書く（現在は未実装・何もしない）
+        }
+
+        async function logout() {
+            if (!confirm("ログアウトしますか？")) return;
+
+            // サーバー側のログアウト処理（API未実装の間は何もしない）
+            try {
+                await callLogoutApi();
+            } catch (error) {
+                console.error("ログアウトAPIの呼び出しに失敗しました:", error);
+                // 失敗しても、この端末上のログアウトは続行する
+            }
+
+            // 音声入力・履歴ドロワーを閉じる
+            stopVoiceInput();
+            toggleHistory(false);
+
+            // ログイン情報と会話の状態をすべてリセット
+            CURRENT_USER_ID = null;
+            ACCESS_TOKEN = null;
+            currentCharacter = { name: '', image: '' };
+            activeConversations = { "つむぎ": null, "蒼空": null };
+
+            // 画面に残っている内容を消去（次のユーザーに前の会話が見えないように）
+            document.getElementById('chat-messages').innerHTML = '';
+            document.getElementById('history-list-area').innerHTML = '';
+            document.getElementById('chat-input-field').value = '';
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            document.getElementById('login-error').classList.remove('show');
+            document.getElementById('login-success').classList.remove('show');
+            document.getElementById('register-error').classList.remove('show');
+
+            switchScreen('login-screen');
         }
 
         function goBackToSelection() { switchScreen('selection-screen'); }

@@ -18,11 +18,11 @@ router.get('/:userId', async (req, res) => {
 
 // 新しい会話を作成
 router.post('/', async (req, res) => {
-  const { userId, title } = req.body;
+  const { userId, title, characterName } = req.body;
 
   const { data, error } = await supabase
     .from('conversations')
-    .insert({ user_id: userId, title: title || '新しい会話' })
+    .insert({ user_id: userId, title: title, character_name: characterName })
     .select()
     .single();
 
