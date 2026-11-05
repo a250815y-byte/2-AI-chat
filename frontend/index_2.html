@@ -643,6 +643,7 @@
             </div>
             <div class="fixed-input-area">
                 <button class="btn-primary" onclick="startChat()" id="start-chat-btn">トークを始める</button>
+                <button class="btn-secondary" onclick="startNewChat()" style="margin-top:10px;">＋ 新しい会話を始める</button>
             </div>
         </div>
 
@@ -666,9 +667,7 @@
     <script>
         // フロントとバックエンドを同じマシンで動かす場合は localhost を使用し、
         // 別ホストに配置した場合はフロントと同じホスト名の 3000 番ポートを使用する。
-        const API_BASE_URL = window.location.protocol === 'file:'
-            ? 'http://localhost:3000'
-            : `${window.location.protocol}//${window.location.hostname}:3000`;
+        const API_BASE_URL = "https://two-ai-chat.onrender.com";
 
         /* ログイン成功時にサーバーから返る userId で上書きされる（未ログイン時は null） */
         let CURRENT_USER_ID = null;
@@ -1228,7 +1227,11 @@
 
             switchScreen('login-screen');
         }
-
+        
+        function startNewChat() {
+            activeConversations[currentCharacter.name] = null;
+            startChat();
+        }
         function goBackToSelection() { switchScreen('selection-screen'); }
         function goBackToHome() { switchScreen('home-screen'); }
     </script>
