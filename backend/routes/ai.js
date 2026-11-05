@@ -67,7 +67,7 @@ const characterPrompts = {
 // 会話タイトルを自動生成する関数
 async function generateTitle(userMessage) {
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const prompt = `次のメッセージを10文字以内の日本語タイトルにしてください。タイトルの文字だけを返してください。説明や記号は不要です。\n\n${userMessage}`;
         const result = await model.generateContent(prompt);
         const fullText = result.response.text().trim();
@@ -125,7 +125,7 @@ router.post('/', async (req, res) => {
  
         // 6. Geminiに送信
         const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.0-flash',
             systemInstruction: systemPrompt
         });
         const chat = model.startChat({ history: formattedHistory });
