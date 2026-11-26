@@ -88,155 +88,83 @@ const characterPrompts = {
 蒼空: 「そっか…そういう日もあるだじゃ。まずは温かいもんでも食って、しっかり休めな。おめが毎日頑張ってるの、わぁはちゃんと分かってるはんで。明日は明日の風が吹くべ、焦らなくて大丈夫だじゃ。」`
 };
 
-// 会話タイトルを自動生成する関数
-async function generateTitle(userMessage, characterName) {
-// IDから表示用キャラクター名を取得（指定なしなら「つむぎ」をデフォルトに）
-const nameMap = {
-'tsumugi': 'つむぎ',
-'aozora': '蒼空'
-};
-const displayName = nameMap[characterName] || 'つむぎ';
+// 直近の履歴だけをGeminiに渡す（1キャラ1チャットなので、履歴が際限なく増えるため）
+const HISTORY_LIMIT = 40;
 
-try {
-    const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3.8-flash',
-        systemInstruction: `あなたはチャット履歴のタイトルを生成する専門AIです。
-
-ユーザーの入力メッセージから、会話の内容がひと目でわかる日本語タイトルを作成してください。
-
-【対話相手の情報】
-対話相手の名前: 「${displayName}」
-
-【厳格なルール】
-
-
-必ず日本語で出力すること（英語や思考プロセスの出力は絶対禁止）。
-「AI」「人工知能」「ボット」「システム」という言葉は絶対に禁止。相手を表現する場合は必ず「${displayName}」と書くこと。
-会話の主要なテーマやトピックを「10文字〜20文字程度」の自然な日本語で要約すること。
-単一の単語（例: 「${displayName}」「挨拶」「相談」など）だけで出力しないこと。
-文末は体言止め（〜の相談、〜について、〜のやり方など）にすること。
-余計な記号（「」や【】）は含めないこと。
-
-
-【出力例】
-入力: 自己紹介するね！私は学生だよ。得意なことは？
-出力: 自己紹介と${displayName}の得意なこと
-
-入力: 今日の夕飯何にしようかな？
-出力: 夕食のメニュー選びの相談
-
-入力: よろしくね！
-出力: ${displayName}との挨拶`
-});
-
-    const prompt = `以下のユーザーメッセージから、会話のテーマを表すタイトルを1つ作成してください：\n\n${userMessage}`;
-    
-    const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-            temperature: 0.2
-        }
-    });
-
-    let title = result.response.text().trim();
-
-    // 思考プロセスや改行の徹底除去
-    const lines = title
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l !== '' && !l.toUpperCase().includes('THOUGHTS'));
-
-    title = lines[lines.length - 1] || title;
-    title = title.replace(/^[「『"【]|[\n」』"】]$/g, '').trim();
-
-    // 強制正規表現置換（「AI」「人工知能」などの単語を確実にキャラ名へ置換）
-    title = title.replace(/AI|人工知能|ボット|システム/gi, displayName);
-
-    // 「つむぎ」単体や短すぎる場合・挨拶の場合のガード処理
-    if (title.length <= 3 || title === displayName) {
-        title = `${displayName}との会話`;
-    }
-
-    console.log('生成されたタイトル:', title);
-    return title;
-} catch (e) {
-    console.error('タイトル生成エラー:', e.message);
-    return `${displayName}との会話`;
-}
-
-}
-
-router.post('/', async (req, res) => {
-try {
-const { conversationId, userMessage, characterName } = req.body;
-
-    // 1. 過去のメッセージ履歴を取得
-    const { data: history, error: historyError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-    if (historyError) throw historyError;
-
-    // 2. 最初のメッセージならタイトルを自動生成してDBを更新
-    if (history.length === 0) {
-        try {
-            // characterName も確実に渡す
-            const title = await generateTitle(userMessage, characterName);
-            console.log('タイトル生成結果:', title);
-            if (title) {
-                const { error: updateError } = await supabase
-                    .from('conversations')
-                    .update({ title })
-                    .eq('id', conversationId);
-                if (updateError) console.error('タイトル更新エラー:', updateError);
-            }
-        } catch (titleErr) {
-            console.error('タイトル処理失敗（会話は続行します）:', titleErr);
-        }
-    }
-
-    // 3. ユーザーのメッセージをDBに保存
-    const { error: userMsgError } = await supabase
-        .from('messages')
-        .insert({ conversation_id: conversationId, sender: 'user', content: userMessage });
-
-    if (userMsgError) throw userMsgError;
-
-    // 4. Geminiに送る会話履歴を整形
-    const formattedHistory = history.map(msg => ({
+function toGeminiHistory(rows) {
+    const history = rows.map(msg => ({
         role: msg.sender === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }]
     }));
-
-    // 5. キャラクターのシステムプロンプトを取得
-    const systemPrompt = characterPrompts[characterName] || characterPrompts['tsumugi'];
-
-    // 6. Geminiに送信
-    const model = genAI.getGenerativeModel({
-        model: 'gemini-3.8-flash',
-        systemInstruction: systemPrompt
-    });
-    const chat = model.startChat({ history: formattedHistory });
-    const result = await chat.sendMessage(userMessage);
-    const aiReply = result.response.text();
-
-    // 7. AIの返答をDBに保存
-    const { error: aiMsgError } = await supabase
-        .from('messages')
-        .insert({ conversation_id: conversationId, sender: 'ai', content: aiReply });
-
-    if (aiMsgError) throw aiMsgError;
-
-    // 8. フロントに返す
-    res.json({ reply: aiReply });
-
-} catch (error) {
-    console.error('AI error:', error);
-    res.status(500).json({ error: error.message });
+    // Geminiの履歴は必ず user から始まる必要がある（切り出し位置が AI の発言だった場合は除く）
+    while (history.length > 0 && history[0].role !== 'user') history.shift();
+    return history;
 }
 
+router.post('/', async (req, res) => {
+    const { conversationId, userMessage, characterName } = req.body;
+
+    try {
+        if (!conversationId || !userMessage) {
+            return res.status(400).json({ error: 'conversationId and userMessage are required' });
+        }
+
+        // 1. 会話に紐づくキャラクターを取得（リクエストの値より優先し、別キャラの設定が混ざらないようにする）
+        const { data: conversation, error: convError } = await supabase
+            .from('conversations')
+            .select('character_name')
+            .eq('id', conversationId)
+            .maybeSingle();
+
+        if (convError) throw convError;
+        if (!conversation) return res.status(404).json({ error: 'conversation not found' });
+
+        const characterId = conversation.character_name || characterName;
+
+        // 2. 直近のメッセージ履歴を取得（新しい順に取って、古い順に戻す）
+        const { data: recent, error: historyError } = await supabase
+            .from('messages')
+            .select('sender, content')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: false })
+            .limit(HISTORY_LIMIT);
+
+        if (historyError) throw historyError;
+        const formattedHistory = toGeminiHistory(recent.reverse());
+
+        // 3. ユーザーのメッセージをDBに保存
+        const { error: userMsgError } = await supabase
+            .from('messages')
+            .insert({ conversation_id: conversationId, sender: 'user', content: userMessage });
+
+        if (userMsgError) throw userMsgError;
+
+        // 4. キャラクターのシステムプロンプトを取得
+        const systemPrompt = characterPrompts[characterId] || characterPrompts['tsumugi'];
+
+        // 5. Geminiに送信
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-3.8-flash',
+            systemInstruction: systemPrompt
+        });
+        const chat = model.startChat({ history: formattedHistory });
+        const result = await chat.sendMessage(userMessage);
+        const aiReply = result.response.text();
+
+        // 6. AIの返答をDBに保存
+        const { error: aiMsgError } = await supabase
+            .from('messages')
+            .insert({ conversation_id: conversationId, sender: 'ai', content: aiReply });
+
+        if (aiMsgError) throw aiMsgError;
+
+        // 7. フロントに返す
+        res.json({ reply: aiReply });
+
+    } catch (error) {
+        console.error('AI error:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;

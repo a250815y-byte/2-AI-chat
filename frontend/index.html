@@ -526,7 +526,7 @@
         <div class="drawer-overlay" id="drawer-overlay" onclick="toggleHistory(false)"></div>
         <div class="history-drawer" id="history-drawer">
             <div class="history-header">
-                <h3>会話の履歴</h3>
+                <h3>チャット</h3>
                 <button class="icon-btn" onclick="toggleHistory(false)">✕</button>
             </div>
             <div class="history-list" id="history-list-area"></div>
@@ -643,7 +643,6 @@
             </div>
             <div class="fixed-input-area">
                 <button class="btn-primary" onclick="startChat()" id="start-chat-btn">トークを始める</button>
-                <button class="btn-secondary" onclick="startNewChat()" style="margin-top:10px;">＋ 新しい会話を始める</button>
             </div>
         </div>
 
@@ -952,32 +951,21 @@
 
                     if (conversations && conversations.length > 0) {
                         conversations.forEach(conv => {
-                            const item = document.createElement('div');
-                            item.classList.add('history-item');
-                            const titleSpan = document.createElement('span');
-                            titleSpan.classList.add('history-item-title');
-                            titleSpan.innerText = `${conv.title} `;
-                            item.appendChild(titleSpan);
-
-                            const deleteBtn = document.createElement('button');
-                            deleteBtn.classList.add('history-delete-btn');
-                            deleteBtn.innerText = '🗑';
-                            deleteBtn.setAttribute('aria-label', '会話を削除');
-                            deleteBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                deleteConversation(conv, item, deleteBtn);
-                            };
-                            item.appendChild(deleteBtn);
-
-                            item.onclick = () => {
-                                toggleHistory(false);
-                                const character = characters[characterIdFromName(conv.character_name || conv.title)];
-                                selectCharacter(character.name, character.image);
-                                activeConversations[character.name] = conv.id;
-                                startChat();
-                            };
-                            listArea.appendChild(item);
-                        });
+                        const character = characters[characterIdFromName(conv.character_name || conv.title)];
+                        const item = document.createElement('div');
+                        item.classList.add('history-item');
+                        const titleSpan = document.createElement('span');
+                        titleSpan.classList.add('history-item-title');
+                        titleSpan.innerText = `${character.name} とのチャット`;
+                        item.appendChild(titleSpan);
+                        item.onclick = () => {
+                            toggleHistory(false);
+                            selectCharacter(character.name, character.image);
+                            activeConversations[character.name] = conv.id;
+                            startChat();
+                        };
+                        listArea.appendChild(item);
+                    });
                     } else {
                         listArea.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:14px;">まだ履歴はありません。</p>';
                     }
@@ -988,49 +976,6 @@
             } else {
                 drawer.classList.remove('open');
                 overlay.classList.remove('show');
-            }
-        }
-
-        async function deleteConversation(conv, itemEl, deleteBtn) {
-            if (!confirm(`${conv.title} との会話を削除しますか？\nこの操作は取り消せません。`)) return;
-
-            deleteBtn.disabled = true;
-            try {
-                const response = await fetch(`${API_BASE_URL}/conversations/${conv.id}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-
-                if (!response.ok) {
-                    alert(data.message || "削除に失敗しました。");
-                    deleteBtn.disabled = false;
-                    return;
-                }
-
-                // 削除した会話が現在使用中なら、次回は新しい会話を作るようにリセット
-                const charName = characters[characterIdFromName(conv.character_name || conv.title)].name;
-                const wasActive = activeConversations[charName] === conv.id;
-                if (wasActive) {
-                    activeConversations[charName] = null;
-                }
-
-                itemEl.remove();
-
-                const listArea = document.getElementById('history-list-area');
-                if (!listArea.querySelector('.history-item')) {
-                    listArea.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:14px;">まだ履歴はありません。</p>';
-                }
-
-                // 表示中のチャットが削除された会話だった場合はホーム画面に戻す
-                if (wasActive && document.getElementById('chat-screen').classList.contains('active')) {
-                    toggleHistory(false);
-                    document.getElementById('chat-messages').innerHTML = '';
-                    switchScreen('home-screen');
-                }
-            } catch (error) {
-                console.error("会話の削除に失敗しました:", error);
-                alert("サーバーに接続できませんでした。時間をおいて再度お試しください。");
-                deleteBtn.disabled = false;
             }
         }
 
@@ -1228,10 +1173,6 @@
             switchScreen('login-screen');
         }
         
-        function startNewChat() {
-            activeConversations[currentCharacter.name] = null;
-            startChat();
-        }
         function goBackToSelection() { switchScreen('selection-screen'); }
         function goBackToHome() { switchScreen('home-screen'); }
     </script>
